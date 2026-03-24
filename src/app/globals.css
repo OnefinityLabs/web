@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   Conviq Design System — Tailwind v4 @theme tokens
+   Matches the HTML dashboard 1:1
+   ═══════════════════════════════════════════════════════════ */
+
+@theme inline {
+  --color-bg: #070C14;
+  --color-surface: #0C1525;
+  --color-card: #101D32;
+  --color-card2: #0E1929;
+  --color-border: #1A2B44;
+  --color-border2: #243354;
+
+  --color-text1: #EEF2FF;
+  --color-text2: #8B96B0;
+  --color-text3: #4B5A72;
+
+  --color-blue: #2563EB;
+  --color-blue-l: #3B82F6;
+  --color-blue-dim: #1E3A6E;
+  --color-green: #10B981;
+  --color-green-dim: #064E3B;
+  --color-purple: #7C3AED;
+  --color-purple-dim: #3B0764;
+  --color-red: #EF4444;
+  --color-amber: #F59E0B;
+
+  --font-sans: "Inter", sans-serif;
+}
+
+/* ── Global Resets ───────────────────────────────────────── */
+html,
+body {
+  height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text1);
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border2);
+  border-radius: 3px;
+}
+
+/* ── Pulse animation for "analysed" dot ──────────────────── */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* ── Skeleton shimmer for loading states ─────────────────── */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-card) 25%,
+    var(--color-border) 50%,
+    var(--color-card) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+  border-radius: 8px;
+}
