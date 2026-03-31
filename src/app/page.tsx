@@ -6,48 +6,67 @@ import { AgentCard, AgentCardSkeleton } from "@/components/agent/AgentCard";
 import { fetchAgents } from "@/lib/api";
 import type { AgentSummary } from "@/lib/types";
 
-/**
- * Home Page — Agent Overview
- *
- * Displays 3 agent cards in a grid.
- * Fetches real data from backend API.
- */
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  if (hour >= 17 && hour < 21) return "Good evening";
+  return "Good night";
+}
+
 export default function HomePage() {
   const [agents, setAgents] = useState<AgentSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [greeting, setGreeting] = useState("Hello");
 
   useEffect(() => {
-    async function loadAgents() {
-      setIsLoading(true);
-      setError(null);
+    setGreeting(getGreeting());
+  }, []);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    async function loadAgents(isInitial = false) {
+      if (isInitial) {
+        setIsLoading(true);
+        setError(null);
+      }
 
       const response = await fetchAgents();
 
       if (response.success && response.data) {
         setAgents(response.data);
-      } else {
+
+        if (response.data.some((agent) => agent.status === "processing")) {
+          timeoutId = setTimeout(() => loadAgents(false), 3000);
+        }
+      } else if (isInitial) {
         setError(response.error?.message || "Failed to load agents");
       }
 
-      setIsLoading(false);
+      if (isInitial) {
+        setIsLoading(false);
+      }
     }
 
-    loadAgents();
+    loadAgents(true);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNav agentCount={agents.length} />
+    <div className="flex min-h-screen flex-col bg-bg">
+      <TopNav agentCount={agents.length} title="Projects" />
 
       <main className="flex-1 px-8 py-10">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-[26px] font-bold text-text1">
-            Good afternoon,  👋
+            {greeting}, 👋
           </h1>
           <p className="mt-1.5 text-sm text-text2">
-            {agents.length} agents running · All systems operational · Last
+            {agents.length} projects running · All systems operational · Last
             refreshed just now
           </p>
         </div>
@@ -100,16 +119,6 @@ export default function HomePage() {
             <h2 className="text-lg font-semibold text-text1">
               No agents loaded
             </h2>
-            {/* <p className="mt-2 max-w-md text-center text-sm text-text3">
-              Connect the backend API to load agent data. The dashboard will
-              display agent cards with KPIs, sparklines, and intelligence links
-              once data is available.
-            </p> */}
-            {/* <div className="mt-6 flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-xs text-text3">
-              <span className="inline-block h-2 w-2 rounded-full bg-amber" />
-              Waiting for backend connection at{" "}
-              <code className="text-text2">localhost:3001</code>
-            </div> */}
           </div>
         )}
 

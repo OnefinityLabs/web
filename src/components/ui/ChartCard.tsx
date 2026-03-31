@@ -21,7 +21,7 @@ export function ChartCard({
   return (
     <>
       {/* Normal card */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-[var(--card-shadow)]">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[13px] font-semibold tracking-wide text-text2">
             {title}
@@ -54,7 +54,7 @@ export function ChartCard({
       {/* Expanded overlay */}
       {expanded && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           onClick={() => setExpanded(false)}
         >
           <div

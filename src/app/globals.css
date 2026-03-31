@@ -1,29 +1,65 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════
-   Conviq Design System — Tailwind v4 @theme tokens
-   Matches the HTML dashboard 1:1
+   Conviq Design System — Dual-layer CSS variable approach
+   
+   Layer 1: --c-* vars (switchable via .dark / .light class)
+   Layer 2: @theme inline references --c-* so Tailwind utilities
+            output var() calls that respond to theme changes
    ═══════════════════════════════════════════════════════════ */
 
-@theme inline {
-  --color-bg: #070C14;
-  --color-surface: #0C1525;
-  --color-card: #101D32;
-  --color-card2: #0E1929;
-  --color-border: #1A2B44;
-  --color-border2: #243354;
+/* ── Switchable theme variables ──────────────────────────── */
+:root {
+  --c-bg: #070C14;
+  --c-surface: #0C1525;
+  --c-card: #101D32;
+  --c-card2: #0E1929;
+  --c-border: #1A2B44;
+  --c-border2: #243354;
+  --c-text1: #EEF2FF;
+  --c-text2: #8B96B0;
+  --c-text3: #4B5A72;
+  --c-blue-dim: #1E3A6E;
+  --c-green-dim: #064E3B;
+  --c-purple-dim: #3B0764;
+  --card-shadow: none;
+}
 
-  --color-text1: #EEF2FF;
-  --color-text2: #8B96B0;
-  --color-text3: #4B5A72;
+html.light {
+  --c-bg: #F5F7FA;
+  --c-surface: #FFFFFF;
+  --c-card: #FFFFFF;
+  --c-card2: #F0F4F8;
+  --c-border: #E2E8F0;
+  --c-border2: #CBD5E1;
+  --c-text1: #0F172A;
+  --c-text2: #475569;
+  --c-text3: #94A3B8;
+  --c-blue-dim: #DBEAFE;
+  --c-green-dim: #D1FAE5;
+  --c-purple-dim: #EDE9FE;
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+}
+
+/* ── Tailwind theme tokens → reference switchable vars ──── */
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-card: var(--c-card);
+  --color-card2: var(--c-card2);
+  --color-border: var(--c-border);
+  --color-border2: var(--c-border2);
+  --color-text1: var(--c-text1);
+  --color-text2: var(--c-text2);
+  --color-text3: var(--c-text3);
+  --color-blue-dim: var(--c-blue-dim);
+  --color-green-dim: var(--c-green-dim);
+  --color-purple-dim: var(--c-purple-dim);
 
   --color-blue: #2563EB;
   --color-blue-l: #3B82F6;
-  --color-blue-dim: #1E3A6E;
   --color-green: #10B981;
-  --color-green-dim: #064E3B;
   --color-purple: #7C3AED;
-  --color-purple-dim: #3B0764;
   --color-red: #EF4444;
   --color-amber: #F59E0B;
 
@@ -34,31 +70,25 @@
 html,
 body {
   height: 100%;
-  background: var(--color-bg);
-  color: var(--color-text1);
+  background: var(--c-bg);
+  color: var(--c-text1);
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* ── Scrollbar ───────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-surface);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-border2);
-  border-radius: 3px;
-}
+/* ── Scrollbar — Dark ─────────────────────────────────────── */
+html.dark ::-webkit-scrollbar { width: 6px; }
+html.dark ::-webkit-scrollbar-track { background: var(--c-surface); }
+html.dark ::-webkit-scrollbar-thumb { background: var(--c-border2); border-radius: 3px; }
+
+/* ── Scrollbar — Light ────────────────────────────────────── */
+html.light ::-webkit-scrollbar { width: 6px; }
+html.light ::-webkit-scrollbar-track { background: #F1F5F9; }
+html.light ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 
 /* ── Pulse animation for "analysed" dot ──────────────────── */
 @keyframes pulse-glow {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 .animate-pulse-glow {
   animation: pulse-glow 2s infinite;
@@ -66,21 +96,63 @@ body {
 
 /* ── Skeleton shimmer for loading states ─────────────────── */
 @keyframes shimmer {
-  0% {
-    background-position: -400px 0;
-  }
-  100% {
-    background-position: 400px 0;
-  }
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
 }
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-card) 25%,
-    var(--color-border) 50%,
-    var(--color-card) 75%
-  );
+
+html.dark .skeleton {
+  background: linear-gradient(90deg, var(--c-card) 25%, var(--c-border) 50%, var(--c-card) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.5s infinite ease-in-out;
   border-radius: 8px;
+}
+
+html.light .skeleton {
+  background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+  border-radius: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Theme-responsive utility overrides
+   
+   Tailwind v4 compiles @theme values into hardcoded hex in
+   @layer utilities. These unlayered rules beat layered ones
+   in the CSS cascade, making utilities respond to --c-* vars.
+   ═══════════════════════════════════════════════════════════ */
+
+/* backgrounds */
+.bg-bg { background-color: var(--c-bg); }
+.bg-surface { background-color: var(--c-surface); }
+.bg-card { background-color: var(--c-card); }
+.bg-card2 { background-color: var(--c-card2); }
+.bg-border { background-color: var(--c-border); }
+.bg-border2 { background-color: var(--c-border2); }
+.bg-blue-dim { background-color: var(--c-blue-dim); }
+.bg-green-dim { background-color: var(--c-green-dim); }
+.bg-purple-dim { background-color: var(--c-purple-dim); }
+.bg-card\/80 { background-color: color-mix(in srgb, var(--c-card) 80%, transparent); }
+
+/* borders */
+.border-border { border-color: var(--c-border); }
+.border-border2 { border-color: var(--c-border2); }
+
+/* text */
+.text-text1 { color: var(--c-text1); }
+.text-text2 { color: var(--c-text2); }
+.text-text3 { color: var(--c-text3); }
+.text-text3\/40 { color: color-mix(in srgb, var(--c-text3) 40%, transparent); }
+
+/* gradients */
+.to-card {
+  --tw-gradient-to: var(--c-card);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+/* hover states — need @media (hover:hover) to match Tailwind output */
+@media (hover: hover) {
+  .hover\:border-border2:hover { border-color: var(--c-border2); }
+  .hover\:text-text1:hover { color: var(--c-text1); }
+  .hover\:bg-border:hover { background-color: var(--c-border); }
 }
