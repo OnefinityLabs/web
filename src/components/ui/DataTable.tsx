@@ -13,7 +13,7 @@ export function DataTable({ columns, data }: DataTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[var(--card-shadow)]">
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -33,7 +33,7 @@ export function DataTable({ columns, data }: DataTableProps) {
             return (
               <tr
                 key={row.id}
-                className="border-b border-border transition-colors last:border-b-0 hover:bg-white/[0.02]"
+                className="border-b border-border transition-colors last:border-b-0 hover:bg-blue/[0.04]"
               >
                 <td className="px-4 py-3 font-mono text-xs text-text3">
                   {row.id}
@@ -70,7 +70,7 @@ export function DataTable({ columns, data }: DataTableProps) {
 /** Empty state when no conversations exist */
 function EmptyTable({ columns }: { columns: string[] }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[var(--card-shadow)]">
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -110,7 +110,7 @@ function EmptyTable({ columns }: { columns: string[] }) {
 /** Skeleton placeholder for the table during loading */
 export function DataTableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[var(--card-shadow)]">
       <div className="flex gap-4 border-b border-border bg-surface px-4 py-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="skeleton h-3 w-20" />

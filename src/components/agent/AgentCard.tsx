@@ -10,10 +10,76 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ agent }: AgentCardProps) {
+  const isProcessing = agent.status === "processing";
+  const isReady = agent.status === "ready";
+
+  // Processing card - non-clickable
+  if (isProcessing && agent.processingInfo) {
+    const { totalRecords, processedSoFar, etaMinutes, source, batchLabel } = agent.processingInfo;
+    const progress = Math.round((processedSoFar / totalRecords) * 100);
+    const hours = Math.floor(etaMinutes / 60);
+    const minutes = etaMinutes % 60;
+    const etaDisplay = hours > 0 ? `~${hours}h ${minutes}m` : `~${minutes}m`;
+
+    return (
+      <div
+        className="relative overflow-hidden rounded-[14px] border border-border bg-card p-6 shadow-[var(--card-shadow)]"
+        style={{ "--accent": agent.accent } as React.CSSProperties}
+      >
+        {/* Left accent bar */}
+        <div
+          className="absolute left-0 top-0 h-full w-1"
+          style={{ background: agent.accent }}
+        />
+
+        {/* Header */}
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <div className="text-base font-bold text-text1">{agent.name}</div>
+            <div className="mt-1 text-xs text-text3">{agent.sector}</div>
+          </div>
+          <div className="flex flex-col items-end gap-1.5">
+            <Badge variant={agent.type === "Outbound" ? "outbound" : "inbound"}>
+              {agent.type}
+            </Badge>
+            <Badge variant="processing">
+              <span className="inline-block animate-spin">⟳</span> Processing
+            </Badge>
+          </div>
+        </div>
+
+        {/* ETA */}
+        <div className="mb-2 text-[13px] font-bold text-amber">
+          {etaDisplay} remaining
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-1.5 h-1.5 overflow-hidden rounded-full bg-border">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${progress}%`, background: agent.accent }}
+          />
+        </div>
+
+        {/* Progress Counts */}
+        <div className="mb-2 flex justify-between text-[10px] text-text3">
+          <span>{processedSoFar.toLocaleString()} processed</span>
+          <span>{totalRecords.toLocaleString()} total</span>
+        </div>
+
+        {/* Source Info */}
+        <div className="text-[10px] text-text3">
+          Source: {source} {batchLabel && `· ${batchLabel}`}
+        </div>
+      </div>
+    );
+  }
+
+  // Normal/Ready card - clickable
   return (
     <Link href={`/agent/${agent.id}`}>
       <div
-        className="group relative cursor-pointer overflow-hidden rounded-[14px] border border-border bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
+        className="group relative cursor-pointer overflow-hidden rounded-[14px] border border-border bg-card p-6 shadow-[var(--card-shadow)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
         style={
           {
             "--accent": agent.accent,
@@ -37,13 +103,19 @@ export function AgentCard({ agent }: AgentCardProps) {
             <div className="text-base font-bold text-text1">{agent.name}</div>
             <div className="mt-1 text-xs text-text3">{agent.sector}</div>
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex flex-col items-end gap-1.5">
             <Badge variant={agent.type === "Outbound" ? "outbound" : "inbound"}>
               {agent.type}
             </Badge>
-            <Badge variant="live" dotBefore>
-              Live
-            </Badge>
+            {agent.hasBatches && agent.batches ? (
+              <Badge variant="batches">{agent.batches.length} Batches</Badge>
+            ) : isReady ? (
+              <Badge variant="ready">Ready</Badge>
+            ) : (
+              <Badge variant="live" dotBefore>
+                Live
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -97,7 +169,7 @@ export function AgentCard({ agent }: AgentCardProps) {
 /** Skeleton card during loading */
 export function AgentCardSkeleton() {
   return (
-    <div className="rounded-[14px] border border-border bg-card p-6">
+    <div className="rounded-[14px] border border-border bg-card p-6 shadow-[var(--card-shadow)]">
       <div className="mb-5 flex justify-between">
         <div>
           <div className="skeleton h-5 w-40" />

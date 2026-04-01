@@ -4,6 +4,9 @@ type BadgeVariant =
   | "outbound"
   | "inbound"
   | "live"
+  | "ready"
+  | "processing"
+  | "batches"
   | "blue"
   | "green"
   | "red"
@@ -14,6 +17,9 @@ const VARIANT_CLASSES: Record<BadgeVariant, string> = {
   outbound: "bg-blue/18 text-blue-l",
   inbound: "bg-purple/18 text-[#A78BFA]",
   live: "bg-green/18 text-[#34D399]",
+  ready: "bg-green/18 text-[#34D399]",
+  processing: "bg-amber/18 text-[#FCD34D]",
+  batches: "bg-[rgba(6,182,212,0.15)] text-[#22D3EE]",
   blue: "bg-blue/18 text-[#60A5FA]",
   green: "bg-green/18 text-[#34D399]",
   red: "bg-red/18 text-[#FCA5A5]",

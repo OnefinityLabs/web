@@ -36,7 +36,7 @@ export function KpiCard({
       : "text-text1";
 
   return (
-    <div className={`rounded-xl border p-5 ${border} ${bg}`}>
+    <div className={`rounded-xl border p-5 shadow-[var(--card-shadow)] ${border} ${bg}`}>
       <div
         className={`text-[28px] font-extrabold tracking-tight ${valueColor}`}
         style={highlight && accent ? { color: accent } : undefined}
@@ -58,7 +58,7 @@ export function KpiCard({
 /** Skeleton placeholder for KPI cards during loading */
 export function KpiCardSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-[var(--card-shadow)]">
       <div className="skeleton h-8 w-20" />
       <div className="skeleton mt-2 h-3 w-28" />
       <div className="skeleton mt-2 h-3 w-24" />

@@ -35,7 +35,7 @@ export const CHART_THEME = {
 /** 7-palette for chart datasets */
 export const CHART_PALETTE = [
   "#2563EB",
-  "#7C3AED",
+  "#7b7880ff",
   "#10B981",
   "#F59E0B",
   "#EF4444",
