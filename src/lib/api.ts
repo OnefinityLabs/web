@@ -92,7 +92,7 @@ export async function fetchAgents(
     // Determine project status
     let projectStatus: "live" | "ready" | "processing" = "live";
     if (status.total_pending > 0 && status.analysis_pct < 1) {
-      projectStatus = "ready";
+      projectStatus = "processing";
     } else if (!kpis || kpis.totalCalls === 0) {
       projectStatus = "ready";
     }
