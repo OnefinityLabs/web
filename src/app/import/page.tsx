@@ -7,7 +7,7 @@ import { ImportStep1 } from "@/components/import/ImportStep1";
 import { ImportStep2 } from "@/components/import/ImportStep2";
 import { ImportStep3 } from "@/components/import/ImportStep3";
 import type { ImportFormData } from "@/lib/types";
-import { uploadCSV, startProcessing } from "@/lib/api";
+import { createProject, uploadBatch, processBatch } from "@/lib/api";
 
 /**
  * Import Records Page
@@ -42,24 +42,45 @@ export default function ImportPage() {
             alert("No file selected for processing.");
             return;
         }
-        
+
         setIsUploading(true);
         try {
-            // Determine agent key from project name or default to inbound-support
-            const agentKey = formData.projectName.toLowerCase().includes("lead") ? "lead-gen" : "inbound-support";
-            
-            // 1. Upload CSV
-            console.log("Uploading CSV to backend...");
-            const uploadRes = await uploadCSV(agentKey, formData.file);
+            const projectName = formData.projectName || "Untitled Project";
+            const agentKey = projectName.toLowerCase().includes("lead") ? "lead-gen" : "inbound-support";
+            const tenantConfigKey = "green-fortune";
+
+            // 1. Create project in DB
+            console.log("Creating project...");
+            const projRes = await createProject({
+                name: projectName,
+                project_type_id: 1,
+                tenant_id: 1,
+                tenant_config_key: tenantConfigKey,
+                project_key: agentKey,
+                call_types: agentKey === "lead-gen" ? "outbound" : "inbound",
+            });
+
+            if (!projRes.success || !projRes.data) {
+                alert("Failed to create project: " + projRes.error?.message);
+                return;
+            }
+
+            const projectId = projRes.data.id;
+            console.log("Project created:", projectId);
+
+            // 2. Upload CSV as a batch
+            console.log("Uploading CSV as batch...");
+            const batchLabel = formData.batchLabel || `${projectName}: ${new Date().toLocaleDateString()}`;
+            const uploadRes = await uploadBatch(projectId, formData.file, batchLabel, formData.source);
             console.log("Upload result:", uploadRes);
-            
-            if (uploadRes.success) {
-                // 2. Start Processing
-                console.log("Starting backend processing pipeline...");
-                await startProcessing(agentKey);
-                
-                // Redirect to home where processing project will be shown
-                router.push("/");
+
+            if (uploadRes.success && uploadRes.data) {
+                // 3. Start processing the batch
+                console.log("Starting batch processing...");
+                await processBatch(projectId, uploadRes.data.batch_id);
+
+                // Redirect to the new project dashboard
+                router.push(`/agent/${projectId}`);
             } else {
                 alert("Upload failed: " + uploadRes.error?.message);
             }
