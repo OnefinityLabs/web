@@ -464,6 +464,25 @@ export async function aggregateAgent(
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * POST /api/projects
+ * Create a new project.
+ */
+export async function createProject(payload: {
+  name: string;
+  description?: string;
+  project_type_id?: number;
+  tenant_id: number;
+  tenant_config_key: string;
+  project_key: string;
+  call_types?: string;
+}): Promise<ApiResponse<ProjectDetail>> {
+  return apiFetch<ProjectDetail>("/api/projects", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
  * GET /api/projects
  * List all projects with their batches.
  */

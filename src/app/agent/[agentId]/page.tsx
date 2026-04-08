@@ -21,6 +21,7 @@ import {
 } from "@/components/dashboard/FilterableConversationsTable";
 import {
   fetchAgentDetail,
+  fetchProjectDetail,
   findProjectByKey,
   fetchProjectBatches,
   fetchProjectAnalytics,
@@ -72,38 +73,123 @@ export default function AgentDashboardPage() {
   // Keyed list of initial calls (reset on filter change via FilterableConversationsTable)
   const [initialCalls, setInitialCalls] = useState<RecentCall[]>([]);
 
-  // Fetch agent dashboard data (existing flow — uses /api/calls/)
+  // Project display overrides (set when agentId is a numeric project ID)
+  const [projectName, setProjectName] = useState<string | null>(null);
+  const [projectSector, setProjectSector] = useState<string | null>(null);
+  // The resolved agent key for use in batch change / calls fetching
+  const [effectiveAgentKey, setEffectiveAgentKey] = useState<string>(agentId);
+
+  const isNumericId = /^\d+$/.test(agentId);
+
+  // Fetch project info + agent dashboard data + batches in one effect
   useEffect(() => {
-    async function loadAgentData() {
+    async function loadAll() {
       setIsLoading(true);
+      setBatchesLoading(true);
       setError(null);
-      const response = await fetchAgentDetail(agentId, tenantId);
+
+      let agentKey = agentId;
+      let tenantKey = tenantId;
+      let projName: string | null = null;
+      let projSector: string | null = null;
+      let projId: number | null = null;
+
+      // If agentId is numeric, it's a project ID — resolve the real keys first
+      if (isNumericId) {
+        const projRes = await fetchProjectDetail(parseInt(agentId));
+        if (projRes.success && projRes.data) {
+          const proj = projRes.data;
+          agentKey = proj.project_key || agentId;
+          tenantKey = proj.tenant_config_key || tenantId;
+          projName = proj.name;
+          projSector = proj.project_types?.name || null;
+          projId = proj.id;
+          setEffectiveAgentKey(agentKey);
+          setProjectName(projName);
+          setProjectSector(projSector);
+          setProjectId(proj.id);
+          setProjectTenantKey(proj.tenant_config_key);
+          setBatches(proj.cdr_batch || []);
+        } else {
+          setError("Project not found");
+          setIsLoading(false);
+          setBatchesLoading(false);
+          return;
+        }
+      } else {
+        // Legacy slug-based agentId — look up project by key
+        setEffectiveAgentKey(agentId);
+        const projectRes = await findProjectByKey(agentId);
+        if (projectRes.success && projectRes.data) {
+          setProjectId(projectRes.data.id);
+          setProjectTenantKey(projectRes.data.tenant_config_key);
+          setBatches(projectRes.data.cdr_batch || []);
+        }
+      }
+
+      setBatchesLoading(false);
+
+      // Now fetch agent dashboard using the resolved keys
+      const response = await fetchAgentDetail(agentKey, tenantKey);
       if (response.success && response.data) {
-        setAgentData(response.data);
+        // Override name/sector with project DB values when available
+        if (projName) response.data.name = projName;
+        if (projSector) response.data.sector = projSector;
+
         setOriginalAgentData(response.data);
-        setInitialCalls(response.data.recentCalls);
         setOriginalCalls(response.data.recentCalls);
+
+        // For numeric project IDs with batches, auto-select the first batch
+        // so KPIs + calls are scoped to real data instead of empty combined view
+        const firstBatch = isNumericId && projId ? (await fetchProjectBatches(projId)).data?.[0] ?? null : null;
+
+        if (isNumericId && projId && firstBatch) {
+          setActiveBatchId(firstBatch.id);
+
+          // Fetch batch-specific analytics + calls
+          const [analyticsRes, callsRes] = await Promise.all([
+            fetchProjectAnalytics(projId, firstBatch.id),
+            fetchAgentCalls(agentKey, 1, 15, {}, tenantKey, firstBatch.id),
+          ]);
+
+          const kpiData = analyticsRes.success ? analyticsRes.data : null;
+          const callsList = callsRes.success && callsRes.data ? callsRes.data : [];
+
+          if (kpiData) {
+            const isOutb = response.data.type === "Outbound";
+            const livePct = kpiData.analysis_pct ?? 0;
+            const liveAnalysed = kpiData.total_analysed ?? 0;
+
+            const batchKpis: KpiItem[] = isOutb ? [
+              { label: "Total Outbound Calls", value: String(kpiData.total_calls || 0), sub: "This batch" },
+              { label: "Conversion Rate", value: `${Math.round((kpiData.conversion_rate || 0) * 100)}%`, sub: "Target: 25%", highlight: true },
+              { label: "Callback Rate", value: `${Math.round((kpiData.callback_rate || 0) * 100)}%`, sub: "Scheduled follow-ups" },
+              { label: "Avg Call Duration", value: formatDurationUtil(kpiData.avg_handle_time_secs || 0), sub: "Per completed call" },
+              { label: "Conversations Analysed", value: `${liveAnalysed}`, sub: `${Math.round(livePct * 100)}% complete`, special: true },
+            ] : [
+              { label: "Total Inbound Calls", value: String(kpiData.total_calls || 0), sub: "This batch" },
+              { label: "FCR Rate", value: `${Math.round((kpiData.fcr_rate || 0) * 100)}%`, sub: "Industry avg: 72%", highlight: true },
+              { label: "Repeat Contacts", value: `${Math.round((kpiData.repeat_contact_rate || 0) * 100)}%`, sub: "% of all calls" },
+              { label: "Avg Handle Time", value: formatDurationUtil(kpiData.avg_handle_time_secs || 0), sub: "Per resolved call" },
+              { label: "Conversations Analysed", value: `${liveAnalysed}`, sub: `${Math.round(livePct * 100)}% complete`, special: true },
+            ];
+
+            response.data.kpis = batchKpis;
+            response.data.analysedPct = Math.round(livePct * 100);
+          }
+
+          setAgentData(response.data);
+          setInitialCalls(callsList);
+        } else {
+          setAgentData(response.data);
+          setInitialCalls(response.data.recentCalls);
+        }
       } else {
         setError(response.error?.message || "Failed to load agent data");
       }
       setIsLoading(false);
     }
-    loadAgentData();
-  }, [agentId]);
-
-  // Fetch project + batches (new batch system — uses /api/projects/)
-  useEffect(() => {
-    async function loadProjectBatches() {
-      setBatchesLoading(true);
-      const projectRes = await findProjectByKey(agentId);
-      if (projectRes.success && projectRes.data) {
-        setProjectId(projectRes.data.id);
-        setProjectTenantKey(projectRes.data.tenant_config_key);
-        setBatches(projectRes.data.cdr_batch || []);
-      }
-      setBatchesLoading(false);
-    }
-    loadProjectBatches();
+    loadAll();
   }, [agentId]);
 
   const refreshBatches = useCallback(async () => {
@@ -136,7 +222,7 @@ export default function AgentDashboardPage() {
 
     const [analyticsRes, callsRes] = await Promise.all([
       fetchProjectAnalytics(projectId, batchId),
-      fetchAgentCalls(agentId, 1, 15, {}, batchTenantId, batchId),
+      fetchAgentCalls(effectiveAgentKey, 1, 15, {}, batchTenantId, batchId),
     ]);
 
     const kpiData = analyticsRes.success ? analyticsRes.data : null;
@@ -166,7 +252,7 @@ export default function AgentDashboardPage() {
 
     setInitialCalls(callsList);
     setIsLoading(false);
-  }, [projectId, projectTenantKey, agentId, tenantId, originalAgentData, originalCalls]);
+  }, [projectId, projectTenantKey, effectiveAgentKey, tenantId, originalAgentData, originalCalls]);
 
   /** Toggle a KPI filter key — table resets to page 1 */
   const handleKpiFilterToggle = useCallback((key: keyof CallFilters) => {
@@ -178,9 +264,9 @@ export default function AgentDashboardPage() {
     });
   }, []);
 
-  const agentName   = agentData?.name    || agentId.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  const agentName   = agentData?.name    || projectName || agentId.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   const agentType   = agentData?.type    || "Inbound";
-  const agentSector = agentData?.sector  || "Loading...";
+  const agentSector = agentData?.sector  || projectSector || "Loading...";
   const agentAccent = agentData?.accent  || "#2563EB";
   const kpis: KpiItem[]  = agentData?.kpis || [];
   const analysedPct      = agentData?.analysedPct || 0;
@@ -347,7 +433,7 @@ export default function AgentDashboardPage() {
           ) : (
             <FilterableConversationsTable
               key={`${agentId}-${activeBatchId ?? "all"}`}
-              agentId={agentId}
+              agentId={effectiveAgentKey}
               tenantId={activeBatchId && projectTenantKey ? projectTenantKey : tenantId}
               initialCalls={initialCalls}
               kpis={kpis}
